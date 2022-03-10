@@ -9,17 +9,28 @@
 
 #define BREATHE_PIN 4
 
+#define LOW_BPM 10
+#define HIGH_BPM 20
+
+// iterations = hoeveel biepjes
+// interval = hoe lang tussen biepjes
+#define SLOW_BEEP_ITERATIONS 3  // om een of andere reden biept ie hier in Wokwi maar 2x, in het echt werkt het wel 
+#define SLOW_BEEP_INTERVAL 500 // milliseconds
+#define FAST_BEEP_ITERATIONS 3
+#define FAST_BEEP_INTERVAL 300 // milliseconds
+#define REMIND_INTERVAL 5000 // milliseconds
+
 void beep();
 void detectBreath();
 long calculate_bpms();
 
 Scheduler _runner;
-Task _taskBeep( 500 * TASK_MILLISECOND, 3, &beep);
+Task _taskBeep( SLOW_BEEP_INTERVAL * TASK_MILLISECOND, SLOW_BEEP_ITERATIONS, &beep);
 Task _taskDetectBreath( 50 * TASK_MILLISECOND, TASK_FOREVER, &detectBreath);
 
 Button breathDetector(BREATHE_PIN);
 
-long lastReminder = millis();
+long lastReminder = millis(); // timestamp van laatste reminder
 
 const int taps_len = 24;
 unsigned long taps_millis[taps_len];
@@ -58,21 +69,21 @@ void detectBreath() {
         next_tap = ++next_tap % taps_len;
         total_taps++;
         Serial.println("BPM: " + String(bpm));
-        digitalWrite(LED_BUILTIN,HIGH);
+        digitalWrite(LED_BUILTIN,HIGH); // visual feedback
         digitalWrite(LED_BUILTIN,LOW);
     }
 
-    if( bpm > 20 && millis() - lastReminder > 5000) {
-        _taskBeep.setInterval(500);
-        _taskBeep.setIterations(3);
+    if( bpm > HIGH_BPM && millis() - lastReminder > REMIND_INTERVAL) {
+        _taskBeep.setIterations(SLOW_BEEP_ITERATIONS);
+        _taskBeep.setInterval(SLOW_BEEP_INTERVAL);
         _taskBeep.enableIfNot();
         lastReminder = millis();
         Serial.println("Reminder: Slow down");
     }
 
-    if( bpm < 10 && millis() - lastReminder > 5000) {
-        _taskBeep.setInterval(300);
-        _taskBeep.setIterations(3);
+    if( bpm < LOW_BPM && millis() - lastReminder > REMIND_INTERVAL) {
+        _taskBeep.setIterations(FAST_BEEP_ITERATIONS);
+        _taskBeep.setInterval(FAST_BEEP_INTERVAL);
         _taskBeep.enableIfNot();
         lastReminder = millis();
         Serial.println("Reminder: Speed up");
